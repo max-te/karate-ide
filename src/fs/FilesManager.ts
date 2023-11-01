@@ -48,7 +48,7 @@ class FilesManager {
         const classpathFolders = String(vscode.workspace.getConfiguration('karateIDE.karateCli').get('classpath')).split(path.delimiter);
         const rootModuleMarkerFile = String(vscode.workspace.getConfiguration('karateIDE.multimodule').get('rootModuleMarkerFile'));
         const moduleRootFolders = await vscode.workspace.findFiles('**/' + rootModuleMarkerFile);
-        if (moduleRootFolders.length === 0) {
+        if (moduleRootFolders.length === 0 && vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
             moduleRootFolders.push(vscode.workspace.workspaceFolders[0].uri);
         }
         this.classpathFolders = moduleRootFolders.flatMap(root => {

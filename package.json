@@ -32,9 +32,7 @@
         "rest",
         "api"
     ],
-    "activationEvents": [
-        "*"
-    ],
+    "activationEvents": [],
     "main": "./dist/extension.js",
     "scripts": {
         "vscode:prepublish": "npm run clean && npm run package",
@@ -58,6 +56,8 @@
         "fs-extra": "^9.1.0",
         "js-yaml": "^4.0.0",
         "json-schema": "^0.4.0",
+        "json5": "~2.2.3",
+        "jsonic": "~1.0.1",
         "lodash": ">=4.17.21",
         "minimatch": "^3.0.4",
         "mkdirp": "^1.0.4",
@@ -71,6 +71,7 @@
     "devDependencies": {
         "@types/chai": "^4.2.14",
         "@types/glob": "^7.1.1",
+        "@types/jsonic": "~0.3.2",
         "@types/mocha": "^5.2.7",
         "@types/node": "^12.6.9",
         "@types/vscode": "^1.61.0",

@@ -51,7 +51,7 @@ export class KarateOutputChannel {
         }
     }
 
-    showOutputLogs = (execution: Execution | string, preserveFocus: boolean = true) => {
+    showOutputLogs(execution: Execution | string, preserveFocus: boolean = true) {
         try {
             karateChannel.clear();
             if (execution instanceof SuiteExecution) {
@@ -69,7 +69,7 @@ export class KarateOutputChannel {
         } catch (e) {
             console.error('showOutputLogs', e.message);
         }
-    };
+    }
 
     startFeature(name) {
         this.featureLog = new StringBuffer();

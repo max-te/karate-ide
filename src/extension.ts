@@ -20,6 +20,7 @@ import { generateBusinessFlowTest } from './generators/openapi/OpenAPIBusinessFl
 import { generateKarateMocksFromOpenAPI, generateKarateMockValidation } from './generators/openapi/OpenAPIMocksGenerator';
 import { NetworkLog, NetworkRequestResponseLog, PayloadProperty } from './server/KarateEventLogsModels';
 import { generateKarateProject } from './generators/karate-project/KarateProjectGenerator';
+import { GherkinDocumentFormatter } from './formatting/formatter';
 
 export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(...disposables);
@@ -98,6 +99,7 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('karate-ide', debugAdapterProvider));
     context.subscriptions.push(vscode.languages.registerDefinitionProvider(karateFile, new DefinitionProvider()));
     context.subscriptions.push(vscode.languages.registerCompletionItemProvider(karateFile, new CompletionItemProvider(), ...["'", '"']));
+    context.subscriptions.push(vscode.languages.registerDocumentFormattingEditProvider(karateFile, new GherkinDocumentFormatter()));
 
     // NetworkLogs View
     registerCommand('karateIDE.karateNetworkLogs.clearTree', () => karateNetworkLogsTreeProvider.clear());
@@ -110,7 +112,7 @@ export function activate(context: vscode.ExtensionContext) {
     registerCommand('karateIDE.karateExecutionsTree.runAll', () => relaunchTest('RUN'));
     registerCommand('karateIDE.karateExecutionsTree.debugAll', () => relaunchTest('DEBUG'));
     registerCommand('karateIDE.karateExecutionsTree.runLastExecution', () => relaunchTest());
-    registerCommand('karateIDE.karateExecutionsTree.showOutputLogs', karateOutputChannel.showOutputLogs);
+    registerCommand('karateIDE.karateExecutionsTree.showOutputLogs', execution => karateOutputChannel.showOutputLogs(execution));
     registerCommand('karateIDE.karateExecutionsProcess.stopTestProcesses', () => KarateExecutionProcess.stopTestProcesses());
     createTreeView('karate-executions', { showCollapseAll: false, treeDataProvider: karateExecutionsTreeProvider });
     const eventLogsServer = new EventLogsServer(data => {

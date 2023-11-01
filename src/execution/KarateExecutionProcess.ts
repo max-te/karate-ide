@@ -1,7 +1,5 @@
 import * as karateTestManager from '@/execution/KarateTestsManager';
-import {
-    karateExecutionsTreeProvider as executionsTreeProvider
-} from '@/views/KarateExecutionsTreeProvider';
+import { karateExecutionsTreeProvider as executionsTreeProvider } from '@/views/KarateExecutionsTreeProvider';
 import { karateNetworkLogsTreeProvider } from '@/views/KarateNetworkLogsTreeProvider';
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
 import * as http from 'http';
@@ -85,6 +83,7 @@ export class KarateExecutionProcess {
             this.progress = progress;
             token.onCancellationRequested(() => {
                 testServer.process && testServer.process.kill();
+                karateTestManager.processEvent({ event: 'testSuiteFinished' } as any);
                 karateOutputChannel.append('[Canceled]\n', false);
                 this.onExecuting.fire({ running: false, passed: 0, failed: 0 });
             });

@@ -222,6 +222,7 @@ export function processEvent(event: Event): void {
         testRunner.started(item);
     } else if (event.event === 'testFinished') {
         const item = findTestItem(event.cwd, event.locationHint);
+        console.log('testFinished', item, event);
         testRunner.passed(item, event.duration);
     } else if (event.event === 'testFailed') {
         const errorMessage = new vscode.TestMessage(`${event.message}: ${event.details}`);
