@@ -45,7 +45,8 @@
         "pretest": "npm run test-compile && npm run lint",
         "prettier:format": "prettier --write \"{,src/**/,test/**}*.{js,ts}\"",
         "lint": "eslint src --ext ts",
-        "test": "ts-mocha test/**/*.spec.ts"
+        "test": "ts-mocha test/**/*.spec.ts",
+        "vsix": "vsce package"
     },
     "dependencies": {
         "@apidevtools/json-schema-ref-parser": "^9.0.7",
