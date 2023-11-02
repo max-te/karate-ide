@@ -38,8 +38,8 @@ import {
     TextEdit,
     workspace,
 } from 'vscode';
-import * as prettier from 'prettier';
-import { parseExpression } from '@babel/parser';
+import * as jsonic from 'jsonic';
+const JSON5 = require('json5').default; // 'require' because of ESM troubles
 
 type FormatConfVal = number | 'relative' | 'relativeUp';
 
@@ -210,7 +210,7 @@ function formatTables(text) {
     return textArr.join('\r\n');
 }
 
-function formatJson(textBody: string, insertSpaces: boolean, tabSize: number) {
+function formatJson(textBody: string, indent: string) {
     let rxTextBlock = /^\s*""".*$([\s\S.]*?)"""/gm;
     let rxQuoteBegin = /"""/gm;
 
@@ -241,7 +241,7 @@ function formatJson(textBody: string, insertSpaces: boolean, tabSize: number) {
         let textIndentTotal = txt.match(rxIndentTotal);
         let textIndent = textIndentTotal[0].replace(rxQuoteBegin, '').replace(/\n/g, '');
 
-        let jsonTxt = prettier.format(preJson, { parser: 'json5', tabWidth: tabSize, tabs: !insertSpaces });
+        let jsonTxt = JSON5.stringify(jsonic(preJson), { space: indent, quote: '"' });
         jsonTxt = '\n' + header + '\n' + jsonTxt + '\n"""';
         jsonTxt = jsonTxt.replace(/^/gm, textIndent);
 
@@ -258,7 +258,7 @@ function formatJson(textBody: string, insertSpaces: boolean, tabSize: number) {
 
 function isJson(str) {
     try {
-        parseExpression(str);
+        jsonic(str);
     } catch (e) {
         return false;
     }
@@ -274,9 +274,7 @@ function stringBytesLen(str: string) {
     return str.length + (str.match(cjkRegex) || []).length;
 }
 
-export function format(formatOptions: FormattingOptions, text: string, settings: Settings): string {
-    const indent = getIndent(formatOptions);
-
+export function format(indent: string, text: string, settings: Settings): string {
     //Insert correct indents for all the lined differs from string start
     text = correctIndents(text, indent, settings);
 
@@ -284,7 +282,7 @@ export function format(formatOptions: FormattingOptions, text: string, settings:
     text = formatTables(text);
 
     // JSON beautifier
-    text = formatJson(text, formatOptions.insertSpaces, formatOptions.tabSize);
+    text = formatJson(text, indent);
 
     return text;
 }
@@ -303,9 +301,10 @@ export class GherkinDocumentFormatter implements DocumentFormattingEditProvider,
     provideDocumentFormattingEdits(document: TextDocument, options: FormattingOptions, token: CancellationToken): ProviderResult<TextEdit[]> {
         const text = document.getText();
         const textArr = text.split(/\r?\n/g);
+        const indent = getIndent(options);
         const range = new Range(new Position(0, 0), new Position(textArr.length - 1, textArr[textArr.length - 1].length));
         const settings = workspace.getConfiguration('karateIDE.formatter') as Settings;
-        const formattedText = format(options, text, settings);
+        const formattedText = format(indent, text, settings);
         const clearedText = clearText(formattedText);
         return [TextEdit.replace(range, clearedText)];
     }
@@ -318,10 +317,11 @@ export class GherkinDocumentFormatter implements DocumentFormattingEditProvider,
     ): ProviderResult<TextEdit[]> {
         const text = document.getText();
         const textArr = text.split(/\r?\n/g);
+        const indent = getIndent(options);
         const finalRange = new Range(new Position(range.start.line, 0), new Position(range.end.line, textArr[range.end.line].length));
         const finalText = textArr.splice(finalRange.start.line, finalRange.end.line - finalRange.start.line + 1).join('\r\n');
         const settings = workspace.getConfiguration('karateIDE.formatter') as Settings;
-        const formattedText = format(options, finalText, settings);
+        const formattedText = format(indent, finalText, settings);
         const clearedText = clearText(formattedText);
         return [TextEdit.replace(finalRange, clearedText)];
     }
