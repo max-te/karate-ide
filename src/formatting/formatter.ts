@@ -303,7 +303,7 @@ export class GherkinDocumentFormatter implements DocumentFormattingEditProvider,
         const textArr = text.split(/\r?\n/g);
         const indent = getIndent(options);
         const range = new Range(new Position(0, 0), new Position(textArr.length - 1, textArr[textArr.length - 1].length));
-        const settings = workspace.getConfiguration('karateIDE.formatter') as Settings;
+        const settings: Settings = { skipDocStringsFormat: true };
         const formattedText = format(indent, text, settings);
         const clearedText = clearText(formattedText);
         return [TextEdit.replace(range, clearedText)];
@@ -320,7 +320,7 @@ export class GherkinDocumentFormatter implements DocumentFormattingEditProvider,
         const indent = getIndent(options);
         const finalRange = new Range(new Position(range.start.line, 0), new Position(range.end.line, textArr[range.end.line].length));
         const finalText = textArr.splice(finalRange.start.line, finalRange.end.line - finalRange.start.line + 1).join('\r\n');
-        const settings = workspace.getConfiguration('karateIDE.formatter') as Settings;
+        const settings: Settings = { skipDocStringsFormat: true };
         const formattedText = format(indent, finalText, settings);
         const clearedText = clearText(formattedText);
         return [TextEdit.replace(finalRange, clearedText)];
