@@ -25,7 +25,7 @@ export async function parseFeature(uri: vscode.Uri): Promise<Feature> {
     let document = null;
     try {
         document = await vscode.workspace.openTextDocument(uri);
-    } catch(e) {
+    } catch (e) {
         console.log('ERROR in parseFeature', uri.fsPath, e.message);
         return null;
     }
@@ -56,7 +56,7 @@ export async function parseFeature(uri: vscode.Uri): Promise<Feature> {
             let exampleIndex = 1;
             for (line = line + 2; line < document.lineCount; line++) {
                 lineText = document.lineAt(line).text.trim();
-                if (lineText === '') {
+                if (lineText === '' || lineText.startsWith('#')) {
                     continue;
                 } else if (lineText.startsWith('|')) {
                     const example = new Example();
@@ -64,8 +64,6 @@ export async function parseFeature(uri: vscode.Uri): Promise<Feature> {
                     example.tags = tags;
                     example.title = `[${exampleIndex++}] ` + lineText.replace(/\s+/g, ' ');
                     outline.examples.push(example);
-                } else if (lineText === '') {
-                    continue;
                 } else {
                     // TODO lookahead if is a new Examples
                     line = line - 1;
