@@ -41,7 +41,7 @@ import {
 import * as jsonic from 'jsonic';
 const JSON5 = require('json5').default; // 'require' because of ESM troubles
 
-type FormatConfVal = number | 'relative' | 'relativeUp';
+type FormatConfVal = number | 'relative' | 'relativeUp' | 'relativeDown';
 
 interface FormatConf {
     [key: string]: FormatConfVal;
@@ -71,7 +71,7 @@ const FORMAT_CONF: FormatConf = {
     ['\\|']: 3,
     ['"""']: 3,
     ['#']: 'relative',
-    ['@']: 'relative',
+    ['@']: 'relativeDown',
 };
 
 const cjkRegex = /[\u3000-\u9fff\uac00-\ud7af\uff01-\uff60]/g;
@@ -136,7 +136,12 @@ export function correctIndents(text, indent, settings: Settings) {
             } else {
                 // In case of 'relativeUp' format option - look for the nearest previous string with some numeric indentation
                 // In case of 'relative' or unknown option - look for the nearest next string with some numeric indentation
-                const nextOrPrevLines = format && format.value === 'relativeUp' ? textArr.slice(0, i).reverse() : textArr.slice(i + 1);
+                const nextOrPrevLines =
+                    format && format.value === 'relativeUp'
+                        ? textArr.slice(0, i).reverse()
+                        : format && format.value === 'relativeDown'
+                        ? textArr.slice(i + 1)
+                        : interleaveArrays(textArr.slice(i + 1), textArr.slice(0, i).reverse());
                 const nextOrPrevLine = nextOrPrevLines.find(l => typeof findIndentation(l, settings) === 'number');
 
                 if (nextOrPrevLine) {
@@ -330,4 +335,17 @@ export class GherkinDocumentFormatter implements DocumentFormattingEditProvider,
 function getIndent(options: FormattingOptions): string {
     const { insertSpaces, tabSize } = options;
     return insertSpaces ? ' '.repeat(tabSize) : '\t';
+}
+
+function interleaveArrays<T>(array1: T[], array2: T[]): T[] {
+    const result = [];
+    for (let i = 0; i < Math.max(array1.length, array2.length); i++) {
+        if (i < array1.length) {
+            result.push(array1[i]);
+        }
+        if (i < array2.length) {
+            result.push(array2[i]);
+        }
+    }
+    return result;
 }
