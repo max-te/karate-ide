@@ -1,6 +1,7 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import * as vscode from 'vscode';
+import { filesManager } from './fs/FilesManager';
 
 export class Feature {
     tags: string[];
@@ -53,23 +54,36 @@ export async function parseFeature(uri: vscode.Uri): Promise<Feature> {
                 outline = scenario;
             }
         } else if (lineText.startsWith('Examples:')) {
-            let exampleIndex = 1;
-            for (line = line + 2; line < document.lineCount; line++) {
+            const tableLines: { text: string; lineNo: number }[] = [];
+            for (line++; line < document.lineCount; line++) {
                 lineText = document.lineAt(line).text.trim();
                 if (lineText === '' || lineText.startsWith('#')) {
                     continue;
                 } else if (lineText.startsWith('|')) {
-                    const example = new Example();
-                    example.line = line + 1;
-                    example.tags = tags;
-                    example.title = `[${exampleIndex++}] ` + lineText.replace(/\s+/g, ' ');
-                    outline.examples.push(example);
+                    tableLines.push({ text: lineText, lineNo: line + 1 });
                 } else {
                     // TODO lookahead if is a new Examples
                     line = line - 1;
                     tags = [];
                     break;
                 }
+            }
+            if (tableLines.length > 1) {
+                // Classic Gherkin header-based table
+                for (const row of tableLines.slice(1)) {
+                    const example = new Example();
+                    example.line = row.lineNo;
+                    example.tags = tags;
+                    example.title = row.text.replace(/\s+/g, ' ');
+                    outline.examples.push(example);
+                }
+            } else if (tableLines.length === 1) {
+                const row = tableLines[0];
+                const example = new Example();
+                example.line = row.lineNo;
+                example.tags = tags;
+                example.title = row.text.replace(/\s+/g, ' ');
+                outline.examples.push(example);
             }
         }
     }
