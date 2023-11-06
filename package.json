@@ -467,10 +467,46 @@
                     "description": "Classpath expression to be set in command line templates. See documentation for different classpath recipes.",
                     "scope": "resource"
                 },
+                "karateIDE.karateCli.classpath.windows": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Override for karateIDE.karateCli.classpath when running on windows.",
+                    "scope": "resource"
+                },
+                "karateIDE.karateCli.classpath.linux": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Override for karateIDE.karateCli.classpath when running on linux.",
+                    "scope": "resource"
+                },
+                "karateIDE.karateCli.classpath.osx": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Override for karateIDE.karateCli.classpath when running on osx.",
+                    "scope": "resource"
+                },
                 "karateIDE.karateCli.runCommandTemplate": {
                     "type": "string",
                     "default": "java '-Dkarate.env=${karateEnv}' '-Dvscode.port=${vscodePort}' -cp '${classpath}' com.intuit.karate.Main --backup-reportdir=false ${karateOptions} '${feature}'",
                     "description": "Command line template for run action. See documentation for available template variables and different recipes.",
+                    "scope": "resource"
+                },
+                "karateIDE.karateCli.runCommandTemplate.windows": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Override for karateIDE.karateCli.runCommandTemplate when running on windows.",
+                    "scope": "resource"
+                },
+                "karateIDE.karateCli.runCommandTemplate.linux": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Override for karateIDE.karateCli.runCommandTemplate when running on linux.",
+                    "scope": "resource"
+                },
+                "karateIDE.karateCli.runCommandTemplate.osx": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Override for karateIDE.karateCli.runCommandTemplate when running on osx.",
                     "scope": "resource"
                 },
                 "karateIDE.karateCli.debugCommandTemplate": {
@@ -479,10 +515,46 @@
                     "description": "Command line template for debug action. See documentation for available template variables and different recipes.",
                     "scope": "resource"
                 },
+                "karateIDE.karateCli.debugCommandTemplate.windows": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Override for karateIDE.karateCli.debugCommandTemplate when running on windows.",
+                    "scope": "resource"
+                },
+                "karateIDE.karateCli.debugCommandTemplate.linux": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Override for karateIDE.karateCli.debugCommandTemplate when running on linux.",
+                    "scope": "resource"
+                },
+                "karateIDE.karateCli.debugCommandTemplate.osx": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Override for karateIDE.karateCli.debugCommandTemplate when running on osx.",
+                    "scope": "resource"
+                },
                 "karateIDE.karateCli.mockServerCommandTemplate": {
                     "type": "string",
                     "default": "java -cp '${classpath}' io.github.apimock.Main -o ${openapi} -m ${feature} ${mockServerOptions}",
                     "description": "Command line template for starting a mock server. See documentation for available template variables and different recipes.",
+                    "scope": "resource"
+                },
+                "karateIDE.karateCli.mockServerCommandTemplate.windows": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Override for karateIDE.karateCli.mockServerCommandTemplate when running on windows.",
+                    "scope": "resource"
+                },
+                "karateIDE.karateCli.mockServerCommandTemplate.linux": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Override for karateIDE.karateCli.mockServerCommandTemplate when running on linux.",
+                    "scope": "resource"
+                },
+                "karateIDE.karateCli.mockServerCommandTemplate.osx": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Override for karateIDE.karateCli.mockServerCommandTemplate when running on osx.",
                     "scope": "resource"
                 },
                 "karateIDE.karateCli.mockServerOptions": {
