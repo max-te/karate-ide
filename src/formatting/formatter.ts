@@ -106,7 +106,7 @@ export function clearText(text: string) {
         .join('\r\n');
 }
 
-export function correctIndents(text, indent, settings: Settings) {
+export function correctIndents(text: string, indent: string, settings: Settings) {
     let commentsMode = false;
     const defaultIndentation = 0;
     let insideRule = false;
@@ -137,11 +137,17 @@ export function correctIndents(text, indent, settings: Settings) {
                 // In case of 'relativeUp' format option - look for the nearest previous string with some numeric indentation
                 // In case of 'relative' or unknown option - look for the nearest next string with some numeric indentation
                 const nextOrPrevLines =
-                    format && format.value === 'relativeUp'
+                    format && format.value === 'relative'
+                        ? interleaveArrays(
+                              textArr.slice(i + 1).filter(l => findFormat(l, settings)?.value !== 'relative'),
+                              textArr
+                                  .slice(0, i)
+                                  .reverse()
+                                  .filter(l => findFormat(l, settings)?.value !== 'relative')
+                          )
+                        : format && format.value === 'relativeUp'
                         ? textArr.slice(0, i).reverse()
-                        : format && format.value === 'relativeDown'
-                        ? textArr.slice(i + 1)
-                        : interleaveArrays(textArr.slice(i + 1), textArr.slice(0, i).reverse());
+                        : textArr.slice(i + 1);
                 const nextOrPrevLine = nextOrPrevLines.find(l => typeof findIndentation(l, settings) === 'number');
 
                 if (nextOrPrevLine) {
