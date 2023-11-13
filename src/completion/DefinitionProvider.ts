@@ -8,7 +8,7 @@ export default class DefinitionProvider implements vscode.DefinitionProvider {
         // console.log('provideDefinition', document.lineAt(position.line), position.character);
         const text = document.lineAt(position.line).text;
         const regex = /["']([^"']*)["']/g;
-        let m;
+        let m: RegExpExecArray;
         while ((m = regex.exec(text)) !== null) {
             const token = m[1];
             const start = m.index + 1,

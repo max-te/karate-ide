@@ -21,6 +21,7 @@ import { generateKarateMocksFromOpenAPI, generateKarateMockValidation } from './
 import { NetworkLog, NetworkRequestResponseLog, PayloadProperty } from './server/KarateEventLogsModels';
 import { generateKarateProject } from './generators/karate-project/KarateProjectGenerator';
 import { GherkinDocumentFormatter } from './formatting/formatter';
+import { ReadFileUpdater } from './fs/ReadFileUpdater';
 
 export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(...disposables);
@@ -98,8 +99,9 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('karate-ide', debugAdapterProvider));
     context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('karate-ide', debugAdapterProvider));
     context.subscriptions.push(vscode.languages.registerDefinitionProvider(karateFile, new DefinitionProvider()));
-    context.subscriptions.push(vscode.languages.registerCompletionItemProvider(karateFile, new CompletionItemProvider(), ...["'", '"']));
+    context.subscriptions.push(vscode.languages.registerCompletionItemProvider(karateFile, new CompletionItemProvider(), ...["'", '"', ':', '/']));
     context.subscriptions.push(vscode.languages.registerDocumentFormattingEditProvider(karateFile, new GherkinDocumentFormatter()));
+    context.subscriptions.push(new ReadFileUpdater().register());
 
     // NetworkLogs View
     registerCommand('karateIDE.karateNetworkLogs.clearTree', () => karateNetworkLogsTreeProvider.clear());

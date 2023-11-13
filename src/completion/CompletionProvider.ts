@@ -7,19 +7,24 @@ export class CompletionItemProvider implements vscode.CompletionItemProvider {
     provideCompletionItems(
         document: vscode.TextDocument,
         position: vscode.Position,
-        token: vscode.CancellationToken,
+        cancellation: vscode.CancellationToken,
         context: vscode.CompletionContext
-    ): vscode.ProviderResult<vscode.CompletionItem[] | vscode.CompletionList> {
-        let completionToken = document.lineAt(position).text.substr(0, position.character);
-        if (!completionToken.includes('read(')) {
+    ) {
+        const completionToken = document.lineAt(position).text.slice(0, position.character);
+
+        const regex = /read\(['"](.*)$|['"](classpath:.*)$|['"](file:.*)$/gm;
+        const groups = regex.exec(completionToken);
+        if (!groups) {
             return undefined;
         }
-        const regex = /read\(['"](.*)/gm;
-        const groups = regex.exec(completionToken);
-        const filePrefix = groups && groups.length === 2 ? groups[1] : '';
-        // console.log('completionToken', completionToken, filePrefix);
+        const filePrefix = groups ? groups[1] ?? groups[2] ?? groups[3] : '';
+        const trimmedPrefix = filePrefix.replace(/(^|[:/])([^:./]*)$/gm, '$1');
+
         return filesManager.getAutoCompleteEntries(document.uri, filePrefix).map(item => {
-            item.insertText = item.label.toString().replace(filePrefix, '');
+            const importPath = item.label.toString();
+            item.detail = importPath;
+            item.insertText = importPath.replace(filePrefix, '');
+            item.label = importPath.replace(trimmedPrefix, '');
             return item;
         });
     }

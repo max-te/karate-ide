@@ -21,7 +21,7 @@ class FilesManager {
     private classpathFolders: string[];
     private cachedKarateTestFiles: string[];
     private cachedClasspathFiles: string[];
-    private watcher;
+    private watcher: vscode.FileSystemWatcher;
 
     constructor() {
         this.workspaceFsPaths = this.workspaceFolders && this.workspaceFolders.map(f => f.uri.fsPath);
@@ -39,17 +39,16 @@ class FilesManager {
         this.testsGlobFilter = String(vscode.workspace.getConfiguration('karateIDE.tests').get('globFilter'));
 
         this.cachedKarateTestFiles = (await vscode.workspace.findFiles(this.testsGlobFilter))
-            // .filter(f => !focus || (focus.length > 0 && minimatch(f.path, focus, { matchBase: true })))
             .map(f => this.relativeToWorkspace(f.fsPath))
             .map(f => f.replace(/\\/g, '/'));
 
         this.cachedClasspathFiles = [];
         this.classpathFolders = [];
-        const classpathFolders = String(vscode.workspace.getConfiguration('karateIDE.karateCli').get('classpath')).split(path.delimiter);
+        const classpathFolders = String(vscode.workspace.getConfiguration('karateIDE.karateCli').get('classpath')).split(/[;:]/g);
         const rootModuleMarkerFile = String(vscode.workspace.getConfiguration('karateIDE.multimodule').get('rootModuleMarkerFile'));
         const moduleRootFolders = await vscode.workspace.findFiles('**/' + rootModuleMarkerFile);
         if (moduleRootFolders.length === 0 && vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
-            moduleRootFolders.push(vscode.workspace.workspaceFolders[0].uri);
+            moduleRootFolders.push(...vscode.workspace.workspaceFolders.map(f => f.uri));
         }
         this.classpathFolders = moduleRootFolders.flatMap(root => {
             return classpathFolders.map(f => this.relativeToWorkspace(f)).map(f => f.replace(/\\/g, '/'));
@@ -115,7 +114,7 @@ class FilesManager {
         return definitions.map(f => new vscode.Location(vscode.Uri.file(f), new vscode.Position(0, 0)));
     }
 
-    private findInClassPathFolders(file) {
+    private findInClassPathFolders(file: string) {
         const searchPaths = this.classpathFolders
             .map(folder => path.join(folder, file))
             .flatMap(f => this.workspaceFsPaths.map(w => path.join(w, f)));
@@ -136,13 +135,10 @@ class FilesManager {
     }
 
     public getAutoCompleteEntries(documentUri: vscode.Uri, completionToken: string): vscode.CompletionItem[] {
-        const relativeTo = this.relativeToWorkspace(documentUri.fragment).replace(/\\/g, '/');
-        let completionStrings = [];
+        const completionStrings = [];
         completionStrings.push(...this.cachedKarateTestFiles.filter(f => f));
         completionStrings.push(...this.cachedClasspathFiles.map(f => `classpath:${f}`));
-        let completionItems = completionStrings.map(f => new vscode.CompletionItem(f, vscode.CompletionItemKind.File));
-        // completionItems.push(...this.cachedKarateTestFiles.filter(f => f).map(f => new vscode.CompletionItem(f, vscode.CompletionItemKind.File)));
-        // completionItems.push(...this.cachedClasspathFiles.map(f => new vscode.CompletionItem(`classpath:${f}`, vscode.CompletionItemKind.File)));
+        const completionItems = completionStrings.map(f => new vscode.CompletionItem(f, vscode.CompletionItemKind.File));
         return completionItems.filter(item => item.label.toString().startsWith(completionToken));
     }
 
@@ -151,6 +147,10 @@ class FilesManager {
             f => !focus || (focus.length > 0 && minimatch(f, focus, { matchBase: true }))
         );
         return this.buildEntriesTree(filteredEntries);
+    }
+
+    public getKarateFileList(): Thenable<vscode.Uri[]> {
+        return vscode.workspace.findFiles(this.testsGlobFilter);
     }
 
     public buildEntriesTree(entries: string[]) {
@@ -175,7 +175,7 @@ class FilesManager {
             return tree;
         }, {});
 
-        // removes itermediate folder that will be empty (no files and just one folder)
+        // removes intermediate folder that will be empty (no files and just one folder)
         function isEmptyFolder(folderName, folders) {
             if (foldersTree[folderName] && Object.keys(foldersTree[folderName]).length) {
                 return false;
