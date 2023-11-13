@@ -1,16 +1,4 @@
-import {
-    Disposable,
-    FileRenameEvent,
-    Position,
-    Range,
-    WorkspaceEdit,
-    extensions,
-    workspace,
-    window,
-    ProgressLocation,
-    Uri,
-    TabInputText,
-} from 'vscode';
+import { Disposable, FileRenameEvent, Range, WorkspaceEdit, workspace, window, ProgressLocation, Uri, TabInputText } from 'vscode';
 import { filesManager } from './FilesManager';
 import { TextDecoder } from 'util';
 
@@ -79,7 +67,6 @@ export class ReadFileUpdater {
             for (const tab of tabGroup.tabs) {
                 if (tab.input instanceof TabInputText) {
                     if (tab.input.uri.fsPath === uri.fsPath) {
-                        console.log(uri.path + ' is open in tab');
                         const document = await workspace.openTextDocument(uri);
                         return document.getText();
                     }
