@@ -45,24 +45,24 @@ export class ReadFileUpdater {
                     const edits = new WorkspaceEdit();
                     const fileList = await filesManager.getKarateFileList();
                     progress.report({ increment: 10 });
-                    for (const uri of fileList) {
-                        try {
-                            const contents = await this.getDocumentContentsFast(uri);
+                    await Promise.all(
+                        fileList.map(async uri => {
+                            try {
+                                const contents = await this.getDocumentContentsFast(uri);
 
-                            if (contents.includes(oldClasspathPath)) {
-                                const document = await workspace.openTextDocument(uri);
-                                const indices = allIndicesOf(oldClasspathPath, document.getText());
-                                for (const index of indices) {
-                                    const pos = document.positionAt(index);
-                                    const endPos = pos.translate(0, oldClasspathPath.length);
-                                    edits.replace(uri, new Range(pos, endPos), newClasspathPath);
+                                if (contents.includes(oldClasspathPath)) {
+                                    const document = await workspace.openTextDocument(uri);
+                                    const indices = allIndicesOf(oldClasspathPath, document.getText());
+                                    for (const index of indices) {
+                                        const pos = document.positionAt(index);
+                                        const endPos = pos.translate(0, oldClasspathPath.length);
+                                        edits.replace(uri, new Range(pos, endPos), newClasspathPath);
+                                    }
                                 }
-                            }
-                        } catch (e) {
-                            continue;
-                        }
-                        progress.report({ increment: (1 / fileList.length) * 80 });
-                    }
+                            } catch (e) {}
+                            progress.report({ increment: (1 / fileList.length) * 80 });
+                        })
+                    );
                     await workspace.applyEdit(edits);
                     progress.report({ increment: 10 });
                 }
