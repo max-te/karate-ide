@@ -103,6 +103,13 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.languages.registerDocumentFormattingEditProvider(karateFile, new GherkinDocumentFormatter()));
     context.subscriptions.push(new ReadFileUpdater().register());
 
+    vscode.languages.setLanguageConfiguration('karate', {
+        onEnterRules: [
+            { beforeText: /\s*(Feature|Rule|Background|Scenario( Outline)?|Examples?):/, action: { indentAction: vscode.IndentAction.Indent } },
+            { beforeText: /=$/, action: { indentAction: vscode.IndentAction.Indent } },
+        ],
+    });
+
     // NetworkLogs View
     registerCommand('karateIDE.karateNetworkLogs.clearTree', () => karateNetworkLogsTreeProvider.clear());
     registerCommand('karateIDE.karateNetworkLogs.showScenarios.true', () => karateNetworkLogsTreeProvider.setShowScenarios(true));
