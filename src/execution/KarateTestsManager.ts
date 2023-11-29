@@ -5,6 +5,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { getCommandLine, getStartMockCommandLine } from './CommandUtils';
 import { Event, KarateExecutionProcess } from './KarateExecutionProcess';
+import { isElement } from 'lodash';
 
 let lastExecution = null;
 let lastExecutionType: 'RUN' | 'DEBUG' = null;
