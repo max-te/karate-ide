@@ -4,22 +4,29 @@ import { TextDecoder } from 'util';
 
 export class ReadFileUpdater {
     async handleRename(e: FileRenameEvent) {
+        let yesToAll = false;
         for (const { oldUri, newUri } of e.files) {
             const oldClasspathPath = 'classpath:' + filesManager.getClasspathRelativePath(oldUri);
             const newClasspathPath = 'classpath:' + filesManager.getClasspathRelativePath(newUri);
 
-            const answer = await window.showInformationMessage(
-                oldUri.path + ' was moved. Update all references from ' + oldClasspathPath + ' to ' + newClasspathPath + '?',
-                'Yes',
-                'No',
-                'No to all'
-            );
+            if (!yesToAll) {
+                const answer = await window.showInformationMessage(
+                    oldUri.path + ' was moved. Update all references from ' + oldClasspathPath + ' to ' + newClasspathPath + '?',
+                    'Yes',
+                    'Yes to all',
+                    'No',
+                    'No to all'
+                );
 
-            if (answer === 'No to all') {
-                break;
-            }
-            if (answer !== 'Yes') {
-                continue;
+                if (answer === 'No to all') {
+                    break;
+                }
+                if (answer === 'No') {
+                    continue;
+                }
+                if (answer === 'Yes to all') {
+                    yesToAll = true;
+                }
             }
 
             window.withProgress(
