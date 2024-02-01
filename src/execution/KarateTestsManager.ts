@@ -5,7 +5,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { getCommandLine, getStartMockCommandLine } from './CommandUtils';
 import { Event, KarateExecutionProcess } from './KarateExecutionProcess';
-import { isElement } from 'lodash';
+import { uniqueId } from 'lodash';
 
 let lastExecution = null;
 let lastExecutionType: 'RUN' | 'DEBUG' = null;
@@ -39,13 +39,17 @@ export async function runKarateTest(feature, line) {
     KarateExecutionProcess.executeInTestServer(fileAndRootPath.root, runCommand);
 }
 
-const testsController = vscode.tests.createTestController('karate', 'Karate Tests');
+let testsController = vscode.tests.createTestController('karate', 'Karate Tests');
 const mocksController = vscode.tests.createTestController('mocks', 'Karate Mocks');
 const testItems = new Map<string, vscode.TestItem>();
+const testPaths = new Map<string, string>();
 
 export function reloadKarateTestsController() {
     testItems.clear();
+    testPaths.clear();
     testsController.items.replace([]);
+    // testsController.dispose();
+    // testsController = vscode.tests.createTestController('karate', 'Karate Tests');
     mocksController.items.replace([]);
     const karateFiles = filesManager.getKarateFiles();
     function addTestItems(karateTestEntries: KarateTestTreeEntry[], parent: vscode.TestItemCollection) {
@@ -54,6 +58,7 @@ export function reloadKarateTestsController() {
                 const folder = testsController.createTestItem(element.uri.fsPath, element.title, element.uri);
                 parent.add(folder);
                 testItems.set(folder.id, folder);
+                testPaths.set(folder.id, element.uri.fsPath);
                 addTestItems(element.children, folder.children);
             } else if (element.type === vscode.FileType.File && element.uri.fsPath.endsWith('.feature')) {
                 await processFeature(element, parent);
@@ -90,7 +95,7 @@ export async function removeFeature(uri: vscode.Uri) {
 }
 
 export async function reloadFeature(uri: vscode.Uri) {
-    processFeature(new KarateTestTreeEntry({ uri, type: vscode.FileType.File, title: path.basename(uri.fsPath) }));
+    await processFeature(new KarateTestTreeEntry({ uri, type: vscode.FileType.File, title: path.basename(uri.fsPath) }));
 }
 
 async function processFeature(element: KarateTestTreeEntry, parent?: vscode.TestItemCollection) {
@@ -106,19 +111,16 @@ async function processFeature(element: KarateTestTreeEntry, parent?: vscode.Test
         mocksController.items.add(mockItem);
         return;
     }
-    if (feature.tags.includes('@ignore')) {
-        return;
-    }
 
     if (!parent) {
         parent = testItems.get(path.dirname(element.uri.fsPath)).children;
     }
-    parent.delete(element.uri.fsPath);
+
     const featureTestItem = testsController.createTestItem(element.uri.fsPath, element.title, element.uri);
+    parent.delete(featureTestItem.id);
     featureTestItem.tags = feature.tags.map(tag => new vscode.TestTag(tag));
     featureTestItem.range = new vscode.Range(0, 0, 1, 0);
-    featureTestItem.canResolveChildren = true;
-    // let tedArray: ITestExecutionDetail[] = await parseFeature(featureTestItem.uri);
+
     feature.scenarios.forEach(scenario => {
         if (scenario.tags.includes('@ignore')) {
             return; // continue next loop
@@ -130,29 +132,29 @@ async function processFeature(element: KarateTestTreeEntry, parent?: vscode.Test
         );
         scenarioTestItem.range = new vscode.Range(scenario.line - 1, 0, scenario.line, 0);
         scenarioTestItem.tags = scenario.tags.map(tag => new vscode.TestTag(tag));
-        scenarioTestItem.canResolveChildren = false;
-        featureTestItem.children.add(scenarioTestItem);
+        scenario.examples.forEach(example => {
+            const exampleTestItem = testsController.createTestItem(uniqueId(), example.title, featureTestItem.uri);
+            exampleTestItem.range = new vscode.Range(example.line - 1, 0, example.line, 0);
+            exampleTestItem.tags = example.tags.map(tag => new vscode.TestTag(tag));
+
+            scenarioTestItem.children.add(exampleTestItem);
+            testItems.set(exampleTestItem.id, exampleTestItem);
+            testPaths.set(exampleTestItem.id, `${featureTestItem.uri.fsPath}:${example.line}`);
+        });
+
         testItems.set(scenarioTestItem.id, scenarioTestItem);
-        if (scenario.examples?.length > 0) {
-            scenarioTestItem.canResolveChildren = true;
-            scenario.examples.forEach(example => {
-                const exampleTestItem = testsController.createTestItem(
-                    `${featureTestItem.uri.fsPath}:${example.line}`,
-                    example.title,
-                    featureTestItem.uri
-                );
-                exampleTestItem.range = new vscode.Range(example.line - 1, 0, example.line, 0);
-                exampleTestItem.tags = example.tags.map(tag => new vscode.TestTag(tag));
-                exampleTestItem.canResolveChildren = false;
-                scenarioTestItem.children.add(exampleTestItem);
-                testItems.set(exampleTestItem.id, exampleTestItem);
-            });
-        }
+        testPaths.set(scenarioTestItem.id, `${featureTestItem.uri.fsPath}:${scenario.line}`);
+        featureTestItem.children.add(scenarioTestItem);
     });
+
+    if (feature.tags.includes('@ignore')) {
+        return;
+    }
     if (featureTestItem.children.size > 0) {
         // TODO filter @ignore and @mock
         parent.add(featureTestItem);
         testItems.set(featureTestItem.id, featureTestItem);
+        testPaths.set(featureTestItem.id, element.uri.fsPath);
     }
 }
 
@@ -160,7 +162,7 @@ let testRunner: vscode.TestRun | undefined;
 function runHandler(shouldDebug: boolean, request: vscode.TestRunRequest, token: vscode.CancellationToken) {
     testRunner = testsController.createTestRun(request);
     const command = shouldDebug ? debugKarateTest : runKarateTest;
-    const testFeature = request.include.map(t => t.id).join(';');
+    const testFeature = request.include.map(t => testPaths.get(t.id)).join(';');
     const enqueue = testItem => {
         testRunner.enqueued(testItem);
         testItem.children.forEach(testItem => enqueue(testItem));

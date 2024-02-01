@@ -64,7 +64,6 @@ export async function parseFeature(uri: vscode.Uri): Promise<Feature> {
                 } else {
                     // TODO lookahead if is a new Examples
                     line = line - 1;
-                    tags = [];
                     break;
                 }
             }
@@ -85,6 +84,7 @@ export async function parseFeature(uri: vscode.Uri): Promise<Feature> {
                 example.title = row.text.replace(/\s+/g, ' ');
                 outline.examples.push(example);
             }
+            tags = [];
         }
     }
 
