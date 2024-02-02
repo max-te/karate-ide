@@ -5,7 +5,6 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { getCommandLine, getStartMockCommandLine } from './CommandUtils';
 import { Event, KarateExecutionProcess } from './KarateExecutionProcess';
-import { uniqueId } from 'lodash';
 
 let lastExecution = null;
 let lastExecutionType: 'RUN' | 'DEBUG' = null;
@@ -133,7 +132,8 @@ async function processFeature(element: KarateTestTreeEntry, parent?: vscode.Test
         scenarioTestItem.range = new vscode.Range(scenario.line - 1, 0, scenario.line, 0);
         scenarioTestItem.tags = scenario.tags.map(tag => new vscode.TestTag(tag));
         scenario.examples.forEach(example => {
-            const exampleTestItem = testsController.createTestItem(uniqueId(), example.title, featureTestItem.uri);
+            const id = [featureTestItem.uri.fsPath, example.line, example.title].join(':');
+            const exampleTestItem = testsController.createTestItem(id, example.title, featureTestItem.uri);
             exampleTestItem.range = new vscode.Range(example.line - 1, 0, example.line, 0);
             exampleTestItem.tags = example.tags.map(tag => new vscode.TestTag(tag));
 
