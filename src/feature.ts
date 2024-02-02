@@ -35,19 +35,19 @@ export async function parseFeature(uri: vscode.Uri): Promise<Feature> {
     let outline: Scenario = null;
     let tags: string[] = [];
     for (let line = 0; line < document.lineCount; line++) {
-        let lineText = document.lineAt(line).text.trim();
+        let lineText: string = document.lineAt(line).text.trim();
         if (lineText.startsWith('@')) {
             tags = [...tags, ...lineText.split(/\s+/).map(t => t.trim())];
         } else if (lineText.startsWith('Feature:')) {
             feature = new Feature();
             feature.tags = tags;
-            feature.title = lineText.trim();
+            feature.title = lineText.substring('Feature:'.length).trim();
             tags = [];
         } else if (lineText.startsWith('Scenario:') || lineText.startsWith('Scenario Outline:')) {
             const scenario = new Scenario();
             scenario.line = line + 1;
             scenario.tags = tags;
-            scenario.title = lineText.trim();
+            scenario.title = lineText.substring(lineText.indexOf(':') + 1).trim();
             feature.scenarios.push(scenario);
             tags = [];
             if (lineText.startsWith('Scenario Outline:')) {

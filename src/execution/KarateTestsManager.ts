@@ -43,28 +43,30 @@ const mocksController = vscode.tests.createTestController('mocks', 'Karate Mocks
 const testItems = new Map<string, vscode.TestItem>();
 const testPaths = new Map<string, string>();
 
-export function reloadKarateTestsController() {
+export async function reloadKarateTestsController() {
     testItems.clear();
     testPaths.clear();
     testsController.items.replace([]);
+    testsController.refreshHandler = reloadKarateTestsController;
     // testsController.dispose();
     // testsController = vscode.tests.createTestController('karate', 'Karate Tests');
     mocksController.items.replace([]);
     const karateFiles = filesManager.getKarateFiles();
-    function addTestItems(karateTestEntries: KarateTestTreeEntry[], parent: vscode.TestItemCollection) {
-        karateTestEntries.forEach(async element => {
+    async function addTestItems(karateTestEntries: KarateTestTreeEntry[], parent: vscode.TestItemCollection) {
+        const subtasks = karateTestEntries.map(async element => {
             if (element.type === vscode.FileType.Directory) {
                 const folder = testsController.createTestItem(element.uri.fsPath, element.title, element.uri);
                 parent.add(folder);
                 testItems.set(folder.id, folder);
                 testPaths.set(folder.id, element.uri.fsPath);
-                addTestItems(element.children, folder.children);
+                await addTestItems(element.children, folder.children);
             } else if (element.type === vscode.FileType.File && element.uri.fsPath.endsWith('.feature')) {
                 await processFeature(element, parent);
             }
         });
+        await Promise.all(subtasks);
     }
-    addTestItems(karateFiles, testsController.items);
+    await addTestItems(karateFiles, testsController.items);
     console.log('Karate tests reloaded', karateFiles.length);
 }
 
@@ -119,6 +121,7 @@ async function processFeature(element: KarateTestTreeEntry, parent?: vscode.Test
     parent.delete(featureTestItem.id);
     featureTestItem.tags = feature.tags.map(tag => new vscode.TestTag(tag));
     featureTestItem.range = new vscode.Range(0, 0, 1, 0);
+    featureTestItem.description = feature.title;
 
     feature.scenarios.forEach(scenario => {
         if (scenario.tags.includes('@ignore')) {
