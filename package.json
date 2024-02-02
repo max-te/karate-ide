@@ -1,23 +1,15 @@
 {
     "name": "karate-ide",
-    "displayName": "ZenWave Karate IDE",
+    "displayName": "Karate IDE",
     "description": "Runner/Debugger, REST Client and OpenAPI Generator for KarateDSL",
     "icon": "resources/karate.png",
-    "version": "1.3.6-SNAPSHOT",
+    "version": "1.4.0",
     "license": "MIT",
-    "publisher": "KarateIDE",
-    "bugs": {
-        "url": "https://github.com/ZenWave360/karate-ide/issues"
-    },
-    "homepage": "https://github.com/ZenWave360/karate-ide/blob/master/README.md",
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/ZenWave360/karate-ide.git"
-    },
+    "publisher": "max-te",
     "author": {
-        "name": "Iván García Sainz-Aja",
-        "email": "ivangsa@gmail.com",
-        "url": "https://github.com/ivangsa"
+        "name": "Maximilian Teegen",
+        "email": "maximilian.teegen@cronn.de",
+        "url": "https://github.com/max-te"
     },
     "engines": {
         "vscode": "^1.67.0"
