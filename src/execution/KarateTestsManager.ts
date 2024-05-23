@@ -38,8 +38,9 @@ export async function runKarateTest(feature, line) {
     KarateExecutionProcess.executeInTestServer(fileAndRootPath.root, runCommand);
 }
 
-let testsController = vscode.tests.createTestController('karate', 'Karate Tests');
+const testsController = vscode.tests.createTestController('karate', 'Karate Tests');
 const mocksController = vscode.tests.createTestController('mocks', 'Karate Mocks');
+const testLocationToId = new Map<string, string>();
 const testItems = new Map<string, vscode.TestItem>();
 const testPaths = new Map<string, string>();
 
@@ -48,8 +49,6 @@ export async function reloadKarateTestsController() {
     testPaths.clear();
     testsController.items.replace([]);
     testsController.refreshHandler = reloadKarateTestsController;
-    // testsController.dispose();
-    // testsController = vscode.tests.createTestController('karate', 'Karate Tests');
     mocksController.items.replace([]);
     const karateFiles = filesManager.getKarateFiles();
     async function addTestItems(karateTestEntries: KarateTestTreeEntry[], parent: vscode.TestItemCollection) {
@@ -57,9 +56,13 @@ export async function reloadKarateTestsController() {
             if (element.type === vscode.FileType.Directory) {
                 const folder = testsController.createTestItem(element.uri.fsPath, element.title, element.uri);
                 parent.add(folder);
+                testLocationToId.set(element.uri.fsPath, folder.id);
                 testItems.set(folder.id, folder);
                 testPaths.set(folder.id, element.uri.fsPath);
                 await addTestItems(element.children, folder.children);
+                if (folder.children.size === 0) {
+                    parent.delete(folder.id);
+                }
             } else if (element.type === vscode.FileType.File && element.uri.fsPath.endsWith('.feature')) {
                 await processFeature(element, parent);
             }
@@ -114,10 +117,22 @@ async function processFeature(element: KarateTestTreeEntry, parent?: vscode.Test
     }
 
     if (!parent) {
-        parent = testItems.get(path.dirname(element.uri.fsPath)).children;
+        function ensureParent(elementPath: string): vscode.TestItemCollection {
+            const parentPath = path.dirname(elementPath);
+            if (testItems.has(parentPath)) {
+                return testItems.get(parentPath).children;
+            } else {
+                const grandparent = ensureParent(parentPath);
+                const parent = testsController.createTestItem(parentPath, path.basename(parentPath), element.uri);
+                grandparent.add(parent);
+                return parent.children;
+            }
+        }
+        parent = ensureParent(element.uri.fsPath);
     }
 
     const featureTestItem = testsController.createTestItem(element.uri.fsPath, element.title, element.uri);
+    testLocationToId.set(element.uri.fsPath, featureTestItem.id);
     parent.delete(featureTestItem.id);
     featureTestItem.tags = feature.tags.map(tag => new vscode.TestTag(tag));
     featureTestItem.range = new vscode.Range(0, 0, 1, 0);
@@ -141,10 +156,12 @@ async function processFeature(element: KarateTestTreeEntry, parent?: vscode.Test
             exampleTestItem.tags = example.tags.map(tag => new vscode.TestTag(tag));
 
             scenarioTestItem.children.add(exampleTestItem);
+            testLocationToId.set([featureTestItem.uri.fsPath, example.line].join(':'), id);
             testItems.set(exampleTestItem.id, exampleTestItem);
             testPaths.set(exampleTestItem.id, `${featureTestItem.uri.fsPath}:${example.line}`);
         });
 
+        testLocationToId.set([featureTestItem.uri.fsPath, scenario.line].join(':'), scenarioTestItem.id);
         testItems.set(scenarioTestItem.id, scenarioTestItem);
         testPaths.set(scenarioTestItem.id, `${featureTestItem.uri.fsPath}:${scenario.line}`);
         featureTestItem.children.add(scenarioTestItem);
@@ -248,7 +265,7 @@ export function processEvent(event: Event): void {
 
 function findTestItem(cwd: string, locationHint: string): vscode.TestItem | undefined {
     const uri = vscode.Uri.joinPath(vscode.Uri.file(cwd), locationHint.replace(/:1$/, ''));
-    const testItem = testItems.get(uri.fsPath);
+    const testItem = testItems.get(testLocationToId.get(uri.fsPath));
     return testItem;
 }
 

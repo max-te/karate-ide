@@ -15,7 +15,7 @@ import {
 
 class KarateNetworkLogsTreeProvider implements vscode.TreeDataProvider<ITreeEntry> {
     private eventLogsTree: { [key: string]: ThreadTreeEntry } = {};
-    private showScenarios = false;
+    private showScenarios = true;
     private httpResponsesCount: number = 0;
     private lastHttpResponse: NetworkLog;
 
@@ -41,7 +41,7 @@ class KarateNetworkLogsTreeProvider implements vscode.TreeDataProvider<ITreeEntr
     }
 
     addITreeEntry(event: LoggingEventVO): any {
-        // console.log('event', event.eventType, event.feature, event.scenario, event.url)
+        console.log('event', event.eventType, event.feature, event.scenario, event.url);
         if (event.eventType.startsWith('FEATURE') && event.callDepth >= 1) {
             return;
         }

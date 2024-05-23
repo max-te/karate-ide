@@ -11,6 +11,10 @@
         "email": "maximilian.teegen@cronn.de",
         "url": "https://github.com/max-te"
     },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/max-te/karate-ide.git"
+    },
     "engines": {
         "vscode": "^1.67.0"
     },
@@ -31,7 +35,7 @@
         "clean": "rimraf dist/",
         "compile": "webpack",
         "watch": "webpack --watch",
-        "package": "webpack --mode production --devtool hidden-source-map",
+        "package": "webpack --mode production --devtool hidden-nosources-cheap-module-source-map",
         "test-compile": "tsc -p ./test",
         "test-watch": "tsc -watch -p ./test",
         "pretest": "npm run test-compile && npm run lint",
