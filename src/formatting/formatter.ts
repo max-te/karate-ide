@@ -39,7 +39,8 @@ import {
     workspace,
 } from 'vscode';
 import * as jsonic from 'jsonic';
-const JSON5 = require('json5').default; // 'require' because of ESM troubles
+import { formatJsonIsh } from './json-formatter';
+import { parseExpression } from '@babel/parser';
 
 type FormatConfVal = number | 'relative' | 'relativeUp' | 'relativeDown';
 
@@ -143,11 +144,11 @@ export function correctIndents(text: string, indent: string, settings: Settings)
                               textArr
                                   .slice(0, i)
                                   .reverse()
-                                  .filter(l => findFormat(l, settings)?.value !== 'relative')
+                                  .filter(l => findFormat(l, settings)?.value !== 'relative'),
                           )
                         : format && format.value === 'relativeUp'
-                        ? textArr.slice(0, i).reverse()
-                        : textArr.slice(i + 1);
+                          ? textArr.slice(0, i).reverse()
+                          : textArr.slice(i + 1);
                 const nextOrPrevLine = nextOrPrevLines.find(l => typeof findIndentation(l, settings) === 'number');
 
                 if (nextOrPrevLine) {
@@ -186,9 +187,9 @@ function formatTables(text) {
                     .reduce(
                         (acc, curr) =>
                             (prev => (prev && prev.endsWith('\\') ? [...acc.slice(0, acc.length - 1), prev + '|' + curr] : [...acc, curr]))(
-                                acc.slice(-1)[0]
+                                acc.slice(-1)[0],
                             ),
-                        []
+                        [],
                     )
                     .map(cell => cell.trim()),
             });
@@ -221,7 +222,7 @@ function formatTables(text) {
     return textArr.join('\r\n');
 }
 
-function formatJson(textBody: string, indent: string) {
+async function formatJson(textBody: string, indent: string) {
     let rxTextBlock = /^\s*""".*$([\s\S.]*?)"""/gm;
     let rxQuoteBegin = /"""/gm;
 
@@ -244,15 +245,18 @@ function formatJson(textBody: string, indent: string) {
                 preJson = preJson.replace(tag, uuid);
             });
         }
-        if (!isJson(preJson)) {
-            continue;
-        }
 
         let rxIndentTotal = /^([\s\S]*?)"""/;
         let textIndentTotal = txt.match(rxIndentTotal);
         let textIndent = textIndentTotal[0].replace(rxQuoteBegin, '').replace(/\n/g, '');
 
-        let jsonTxt = JSON5.stringify(jsonic(preJson), { space: indent, quote: '"' });
+        let jsonTxt = preJson;
+        try {
+            jsonTxt = formatJsonIsh(preJson, { indentation: indent });
+        } catch (e) {
+            continue;
+        }
+
         jsonTxt = '\n' + header + '\n' + jsonTxt + '\n"""';
         jsonTxt = jsonTxt.replace(/^/gm, textIndent);
 
@@ -267,15 +271,6 @@ function formatJson(textBody: string, indent: string) {
     return textBody;
 }
 
-function isJson(str) {
-    try {
-        jsonic(str);
-    } catch (e) {
-        return false;
-    }
-    return true;
-}
-
 function createUUID() {
     return Math.floor(Math.random() * 1000000000).toString();
 }
@@ -285,7 +280,7 @@ function stringBytesLen(str: string) {
     return str.length + (str.match(cjkRegex) || []).length;
 }
 
-export function format(indent: string, text: string, settings: Settings): string {
+export async function format(indent: string, text: string, settings: Settings): Promise<string> {
     //Insert correct indents for all the lined differs from string start
     text = correctIndents(text, indent, settings);
 
@@ -293,7 +288,7 @@ export function format(indent: string, text: string, settings: Settings): string
     text = formatTables(text);
 
     // JSON beautifier
-    text = formatJson(text, indent);
+    text = await formatJson(text, indent);
 
     return text;
 }
@@ -309,30 +304,30 @@ interface Settings {
 }
 
 export class GherkinDocumentFormatter implements DocumentFormattingEditProvider, DocumentRangeFormattingEditProvider {
-    provideDocumentFormattingEdits(document: TextDocument, options: FormattingOptions, token: CancellationToken): ProviderResult<TextEdit[]> {
+    async provideDocumentFormattingEdits(document: TextDocument, options: FormattingOptions, token: CancellationToken): Promise<TextEdit[]> {
         const text = document.getText();
         const textArr = text.split(/\r?\n/g);
         const indent = getIndent(options);
         const range = new Range(new Position(0, 0), new Position(textArr.length - 1, textArr[textArr.length - 1].length));
         const settings: Settings = { skipDocStringsFormat: true };
-        const formattedText = format(indent, text, settings);
+        const formattedText = await format(indent, text, settings);
         const clearedText = clearText(formattedText);
         return [TextEdit.replace(range, clearedText)];
     }
 
-    provideDocumentRangeFormattingEdits(
+    async provideDocumentRangeFormattingEdits(
         document: TextDocument,
         range: Range,
         options: FormattingOptions,
-        token: CancellationToken
-    ): ProviderResult<TextEdit[]> {
+        token: CancellationToken,
+    ): Promise<TextEdit[]> {
         const text = document.getText();
         const textArr = text.split(/\r?\n/g);
         const indent = getIndent(options);
         const finalRange = new Range(new Position(range.start.line, 0), new Position(range.end.line, textArr[range.end.line].length));
         const finalText = textArr.splice(finalRange.start.line, finalRange.end.line - finalRange.start.line + 1).join('\r\n');
         const settings: Settings = { skipDocStringsFormat: true };
-        const formattedText = format(indent, finalText, settings);
+        const formattedText = await format(indent, finalText, settings);
         const clearedText = clearText(formattedText);
         return [TextEdit.replace(finalRange, clearedText)];
     }
