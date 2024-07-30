@@ -20,11 +20,11 @@ function serializeInner(node: Node, options: FormattingOptions): string {
         if (node.properties.length === 0) {
             return '{}';
         }
-        let contents = node.properties.map(p => serialize(p, options)).join('\n');
+        let contents = node.properties.map(p => serialize(p, options)).join(',\n');
         contents = addIndent(contents, options.indentation);
         return `{\n${contents}\n}`;
     } else if (node.type === 'ObjectProperty') {
-        return `${serializeObjectKey(node.key)}: ${serialize(node.value, options)},`;
+        return `${serializeObjectKey(node.key)}: ${serialize(node.value, options)}`;
     } else if (node.type === 'ArrayExpression') {
         if (node.elements.length === 0) {
             return '[]';
@@ -57,36 +57,45 @@ function serializeInner(node: Node, options: FormattingOptions): string {
 }
 
 function serializeObjectKey(key: ObjectProperty['key']): string {
-    // TODO call addComments on result
-    switch (key.type) {
-        case 'Identifier':
-            return key.name;
-        case 'StringLiteral':
-            const hasSpecialChars = /[^a-zA-Z0-9_]/.test(key.value);
-            return hasSpecialChars ? JSON.stringify(key.value) : key.value;
-        default:
-            if (typeof key.extra?.raw === 'string') {
-                return key.extra?.raw as string;
-            }
-            throw new Error(`Unsupported object key type: ${key.type}`);
+    let result;
+    if (key.type === 'Identifier') {
+        result = key.name;
+    } else if (key.type === 'StringLiteral') {
+        const hasSpecialChars = /[^a-zA-Z0-9_]/.test(key.value);
+        result = hasSpecialChars ? JSON.stringify(key.value) : key.value;
+    } else if (typeof key.extra?.raw === 'string') {
+        result = key.extra?.raw as string;
+    } else {
+        throw new Error(`Unsupported object key type: ${key.type}`);
     }
+    return addComments(key, result);
 }
 
-function addComments(key: Node, serialized: string): string {
+function addComments(commentSource: Node, innerString: string): string {
     let out = '';
-    if (key.leadingComments) {
-        for (let comment of key.leadingComments) {
+    if (commentSource.leadingComments) {
+        for (let comment of commentSource.leadingComments) {
+            out += serializeComment(comment);
+        }
+        if (out.slice(-1) !== '\n') {
+            if (commentSource.type === 'ObjectProperty') {
+                out += '\n';
+            } else {
+                out += ' ';
+            }
+        }
+    }
+    if (commentSource.innerComments) {
+        for (let comment of commentSource.innerComments) {
             out += serializeComment(comment);
         }
     }
-    if (key.innerComments) {
-        for (let comment of key.innerComments) {
-            out += serializeComment(comment);
+    out += innerString;
+    if (commentSource.trailingComments) {
+        if (!out.slice(-1).match(/\n$/)) {
+            out += ' ';
         }
-    }
-    out += serialized;
-    if (key.trailingComments) {
-        for (let comment of key.trailingComments) {
+        for (let comment of commentSource.trailingComments) {
             out += serializeComment(comment);
         }
     }
@@ -98,7 +107,9 @@ function serializeComment(comment: Comment) {
         case 'CommentLine':
             return '//' + comment.value + '\n';
         case 'CommentBlock':
-            return '/* ' + comment.value + ' */ ';
+            let trimmedAndDedented = comment.value.trim();
+            trimmedAndDedented = trimmedAndDedented.replace(/\n\s+/gm, '\n   ');
+            return '/* ' + trimmedAndDedented + ' */';
     }
 }
 
