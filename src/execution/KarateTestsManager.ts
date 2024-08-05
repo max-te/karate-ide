@@ -99,6 +99,7 @@ export async function removeFeature(uri: vscode.Uri) {
 }
 
 export async function reloadFeature(uri: vscode.Uri) {
+    testsController.invalidateTestResults(testItems.get(uri.fsPath));
     await processFeature(new KarateTestTreeEntry({ uri, type: vscode.FileType.File, title: path.basename(uri.fsPath) }));
 }
 
