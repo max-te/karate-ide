@@ -20,7 +20,7 @@ function serializeInner(node: Node, options: FormattingOptions): string {
         if (node.properties.length === 0) {
             return '{}';
         }
-        let contents = node.properties.map(p => serialize(p, options)).join(',\n');
+        let contents = node.properties.map(p => serialize(p, options) + ',').join('\n');
         contents = addIndent(contents, options.indentation);
         return `{\n${contents}\n}`;
     } else if (node.type === 'ObjectProperty') {
