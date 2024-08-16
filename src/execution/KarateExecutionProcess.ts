@@ -1,7 +1,7 @@
 import * as karateTestManager from '@/execution/KarateTestsManager';
 import { karateExecutionsTreeProvider as executionsTreeProvider } from '@/views/KarateExecutionsTreeProvider';
 import { karateNetworkLogsTreeProvider } from '@/views/KarateNetworkLogsTreeProvider';
-import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
+import { ChildProcessWithoutNullStreams, exec, spawn } from 'child_process';
 import * as http from 'http';
 import * as net from 'net';
 import * as vscode from 'vscode';
@@ -122,18 +122,16 @@ export class KarateExecutionProcess {
         if (testServerProcess.process && testServerProcess.port) {
             return onPortReadyCallback && onPortReadyCallback(testServerProcess.port);
         } else {
-            const argv = parseArgsStringToArgv(command);
-            const child = (testServerProcess.process = spawn(argv[0], argv.splice(1), { cwd: testServerProcess.cwd }));
+            const child = (testServerProcess.process = exec(command, { cwd: testServerProcess.cwd }));
             child.stdout.setEncoding('utf8');
             child.stdout.on('data', data => {
                 data.trim()
                     .split(/\r?\n/g)
-                    // .slice(0, -1)
                     .forEach(line => {
                         if ((onPortReadyCallback && line.includes('debug server started')) || line.includes('test server started')) {
-                            const port = /\d+$/.exec(line)[0];
-                            testServerProcess.port = +port;
-                            onPortReadyCallback(+port);
+                            const port = parseInt(/\d+$/.exec(line)[0]);
+                            testServerProcess.port = port;
+                            onPortReadyCallback(port);
                         }
                         if (line.startsWith('##vscode {')) {
                             try {
@@ -223,59 +221,4 @@ And run the "KarateIDE: Configure Classpath" command for assistance (View > Comm
 
 function getFeatureName(event: Event) {
     return event.locationHint.substring(event.locationHint.lastIndexOf('/') + 1, event.locationHint.lastIndexOf('.') + 1);
-}
-
-// get randrom free port
-function getFreePort(): Promise<number> {
-    return new Promise<number>((resolve, reject) => {
-        const server = net.createServer();
-        server.unref();
-        server.on('error', reject);
-        server.listen(0, () => {
-            const port = (server.address() as any).port;
-            server.close(() => {
-                resolve(port);
-            });
-        });
-    });
-}
-
-function parseArgsStringToArgv(value: string, env?: string, file?: string): string[] {
-    // ([^\s'"]([^\s'"]*(['"])([^\3]*?)\3)+[^\s'"]*) Matches nested quotes until the first space outside of quotes
-
-    // [^\s'"]+ or Match if not a space ' or "
-
-    // (['"])([^\5]*?)\5 or Match "quoted text" without quotes
-    // `\3` and `\5` are a backreference to the quote style (' or ") captured
-    const myRegexp = /([^\s'"]([^\s'"]*(['"])([^\3]*?)\3)+[^\s'"]*)|[^\s'"]+|(['"])([^\5]*?)\5/gi;
-    const myString = value;
-    const myArray: string[] = [];
-    if (env) {
-        myArray.push(env);
-    }
-    if (file) {
-        myArray.push(file);
-    }
-    let match: RegExpExecArray | null;
-    do {
-        // Each call to exec returns the next regex match as an array
-        match = myRegexp.exec(myString);
-        if (match !== null) {
-            // Accepts any number of arguments, and returns the first one that is a string
-            // (even an empty string)
-            function firstString(...args: Array<any>): string | undefined {
-                for (let i = 0; i < args.length; i++) {
-                    const arg = args[i];
-                    if (typeof arg === 'string') {
-                        return arg;
-                    }
-                }
-            }
-            // Index 1 in the array is the captured group if it exists
-            // Index 0 is the matched text, which we use if no captured group exists
-            myArray.push(firstString(match[1], match[6], match[0])!);
-        }
-    } while (match !== null);
-
-    return myArray;
 }
